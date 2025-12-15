@@ -16,14 +16,30 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Collect representative NOMAD entry IDs (scan-style).")
+    parser = argparse.ArgumentParser(
+        description="Collect representative NOMAD entry IDs (scan-style)."
+    )
     parser.add_argument("--base-url", default="https://nomad-lab.eu/prod/v1/api/v1")
     parser.add_argument("--outdir", default=".")
-    parser.add_argument("--codes", nargs="+", required=True, help="Simulation codes to process (required).")
-    parser.add_argument("--author-quantity", default=schemas.MAIN_AUTHOR_Q, help="Quantity to use for author.")
+    parser.add_argument(
+        "--codes",
+        nargs="+",
+        required=True,
+        help="Simulation codes to process (required).",
+    )
+    parser.add_argument(
+        "--author-quantity",
+        default=schemas.MAIN_AUTHOR_Q,
+        help="Quantity to use for author.",
+    )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--page-size", type=int, default=500)
-    parser.add_argument("--polite-sleep", type=float, default=0.0, help="Unused in scan mode; kept for compatibility.")
+    parser.add_argument(
+        "--polite-sleep",
+        type=float,
+        default=0.0,
+        help="Unused in scan mode; kept for compatibility.",
+    )
     parser.add_argument("--max-authors-per-code", type=int, default=25)
     parser.add_argument("--max-datasets-per-author", type=int, default=10)
     parser.add_argument(
@@ -34,6 +50,18 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args()
+
+
+def read_csv(path: Path, fieldnames: List[str]) -> List[Dict]:
+    """Read existing CSV file if it exists, return empty list otherwise."""
+    if not path.exists():
+        return []
+    rows = []
+    with path.open("r", newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            rows.append(row)
+    return rows
 
 
 def write_csv(path: Path, rows: List[Dict], fieldnames: List[str]) -> None:
@@ -104,12 +132,16 @@ def collect_code(
     representatives: Dict[str, Dict] = {}
     total_entries = 0
 
-    for entry in iter_code_entries(base_url, code, author_quantity, page_size, include_fields):
+    for entry in iter_code_entries(
+        base_url, code, author_quantity, page_size, include_fields
+    ):
         entry_id = entry.get("entry_id")
         if not entry_id:
             continue
 
-        raw_author = entry.get(author_quantity) or entry.get("metadata", {}).get("main_author")
+        raw_author = entry.get(author_quantity) or entry.get("metadata", {}).get(
+            "main_author"
+        )
         author = normalize_author(raw_author)
         if not author:
             continue
@@ -118,7 +150,12 @@ def collect_code(
         total_entries += 1
 
         current = representatives.get(author)
-        candidate = {"entry_id": entry_id, "code": code, "main_author": author, "dataset_id": None}
+        candidate = {
+            "entry_id": entry_id,
+            "code": code,
+            "main_author": author,
+            "dataset_id": None,
+        }
         pick = stable_pick([candidate] + ([current] if current else []), seed=seed)
         representatives[author] = pick
 
@@ -172,6 +209,38 @@ def collect(args: argparse.Namespace) -> int:
         schemas.DATASETS_Q,
     ]
 
+    # Read existing CSV data to merge with new results
+    existing_code_overview = {
+        row["code"]: row
+        for row in read_csv(
+            data_dir / "code_overview.csv",
+            ["code", "n_entries", "n_main_authors", "n_datasets"],
+        )
+    }
+    existing_code_author = read_csv(
+        data_dir / "code_author_overview.csv",
+        ["code", "main_author", "n_entries", "n_datasets"],
+    )
+    existing_code_author_dataset = read_csv(
+        data_dir / "code_author_dataset_overview.csv",
+        ["code", "main_author", "dataset_id", "n_entries"],
+    )
+    existing_global_author_dataset = read_csv(
+        data_dir / "global_author_dataset_overview.csv",
+        ["main_author", "dataset_id", "n_entries"],
+    )
+
+    # Remove existing data for codes being processed (we'll replace it)
+    codes_to_process = set(args.codes)
+    existing_code_author = [
+        row for row in existing_code_author if row["code"] not in codes_to_process
+    ]
+    existing_code_author_dataset = [
+        row
+        for row in existing_code_author_dataset
+        if row["code"] not in codes_to_process
+    ]
+
     code_overview_rows: List[Dict] = []
     code_author_rows: List[Dict] = []
     code_author_dataset_rows: List[Dict] = []
@@ -211,16 +280,49 @@ def collect(args: argparse.Namespace) -> int:
         else:
             logger.info("No picks for code %s", code)
 
-    write_csv(data_dir / "code_overview.csv", code_overview_rows, ["code", "n_entries", "n_main_authors", "n_datasets"])
-    write_csv(data_dir / "code_author_overview.csv", code_author_rows, ["code", "main_author", "n_entries", "n_datasets"])
+    # Merge new data with existing data for codes not processed this run
+    # Update existing_code_overview with new data
+    for row in code_overview_rows:
+        existing_code_overview[row["code"]] = row
+    merged_code_overview = list(existing_code_overview.values())
+
+    # Merge code_author data
+    merged_code_author = existing_code_author + code_author_rows
+
+    # Merge code_author_dataset data
+    merged_code_author_dataset = existing_code_author_dataset + code_author_dataset_rows
+
+    # For global_author_dataset, we need to recompute from all code data
+    # Build a map of (author, dataset) -> count across all codes
+    global_counts: Dict[Tuple[str, Optional[str]], int] = {}
+    for row in merged_code_author_dataset:
+        key = (row["main_author"], row.get("dataset_id"))
+        count = int(row["n_entries"])
+        global_counts[key] = global_counts.get(key, 0) + count
+
+    merged_global_author_dataset = [
+        {"main_author": author, "dataset_id": dataset_id, "n_entries": count}
+        for (author, dataset_id), count in sorted(global_counts.items())
+    ]
+
+    write_csv(
+        data_dir / "code_overview.csv",
+        merged_code_overview,
+        ["code", "n_entries", "n_main_authors", "n_datasets"],
+    )
+    write_csv(
+        data_dir / "code_author_overview.csv",
+        merged_code_author,
+        ["code", "main_author", "n_entries", "n_datasets"],
+    )
     write_csv(
         data_dir / "code_author_dataset_overview.csv",
-        code_author_dataset_rows,
+        merged_code_author_dataset,
         ["code", "main_author", "dataset_id", "n_entries"],
     )
     write_csv(
         data_dir / "global_author_dataset_overview.csv",
-        global_author_dataset_rows,
+        merged_global_author_dataset,
         ["main_author", "dataset_id", "n_entries"],
     )
 
@@ -239,7 +341,9 @@ def collect(args: argparse.Namespace) -> int:
 
 def configure_logging(verbose: bool) -> None:
     level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
 
 
 def main() -> None:

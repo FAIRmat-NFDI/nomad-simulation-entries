@@ -1,24 +1,25 @@
 {
-  "timestamp": "2025-12-15T12:43:51.014715",
+  "timestamp": "2025-12-15T13:46:29.993551",
   "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
   "args": {
     "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
     "outdir": ".",
     "codes": [
-      "ORCA"
+      "GROMACS"
     ],
     "author_quantity": "main_author",
     "seed": 0,
-    "page_size": 2000,
+    "page_size": 200,
     "polite_sleep": 0.0,
     "max_authors_per_code": 25,
     "max_datasets_per_author": 10,
     "include_fields": [
       "entry_id",
+      "upload_id",
       "main_author"
     ],
     "verbose": true
   },
   "total_codes_processed": 1,
-  "total_picked_entries": 21
+  "total_picked_entries": 13
 }

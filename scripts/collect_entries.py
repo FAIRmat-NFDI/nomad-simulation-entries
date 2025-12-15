@@ -1,0 +1,257 @@
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import logging
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Tuple
+
+from . import schemas
+from .nomad_api import fetch_entries_page
+from .selection import deduplicate_entries, normalize_code_name, stable_pick
+
+logger = logging.getLogger(__name__)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Collect representative NOMAD entry IDs (scan-style).")
+    parser.add_argument("--base-url", default="https://nomad-lab.eu/prod/v1/api/v1")
+    parser.add_argument("--outdir", default=".")
+    parser.add_argument("--codes", nargs="+", required=True, help="Simulation codes to process (required).")
+    parser.add_argument("--author-quantity", default=schemas.MAIN_AUTHOR_Q, help="Quantity to use for author.")
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--page-size", type=int, default=500)
+    parser.add_argument("--polite-sleep", type=float, default=0.0, help="Unused in scan mode; kept for compatibility.")
+    parser.add_argument("--max-authors-per-code", type=int, default=25)
+    parser.add_argument("--max-datasets-per-author", type=int, default=10)
+    parser.add_argument(
+        "--include-fields",
+        nargs="+",
+        default=None,
+        help="Fields to request when fetching entries.",
+    )
+    parser.add_argument("--verbose", action="store_true")
+    return parser.parse_args()
+
+
+def write_csv(path: Path, rows: List[Dict], fieldnames: List[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+
+def write_jsonl(path: Path, rows: List[Dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=True) + "\n")
+
+
+def normalize_author(raw: object) -> Optional[str]:
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        return raw.strip() or None
+    if isinstance(raw, dict):
+        for key in ("name", "email"):
+            val = raw.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+        return json.dumps(raw, sort_keys=True)
+    return None
+
+
+def iter_code_entries(
+    base_url: str,
+    code: str,
+    author_quantity: str,
+    page_size: int,
+    include_fields: List[str],
+) -> Iterable[Dict]:
+    page_after: Optional[str] = None
+    query = {schemas.CODE_Q: code}
+    while True:
+        entries, next_val = fetch_entries_page(
+            base_url=base_url,
+            query=query,
+            page_size=page_size,
+            include_fields=include_fields,
+            page_after_value=page_after,
+        )
+        for entry in entries:
+            yield entry
+        if not next_val:
+            break
+        page_after = next_val
+
+
+def collect_code(
+    base_url: str,
+    code: str,
+    author_quantity: str,
+    seed: int,
+    page_size: int,
+    include_fields: List[str],
+    max_authors: int,
+    max_datasets: int,
+) -> Tuple[List[Dict], List[Dict], List[Dict], List[Dict], int]:
+    author_counts: Dict[str, int] = {}
+    representatives: Dict[str, Dict] = {}
+    total_entries = 0
+
+    for entry in iter_code_entries(base_url, code, author_quantity, page_size, include_fields):
+        entry_id = entry.get("entry_id")
+        if not entry_id:
+            continue
+
+        raw_author = entry.get(author_quantity) or entry.get("metadata", {}).get("main_author")
+        author = normalize_author(raw_author)
+        if not author:
+            continue
+
+        author_counts[author] = author_counts.get(author, 0) + 1
+        total_entries += 1
+
+        current = representatives.get(author)
+        candidate = {"entry_id": entry_id, "code": code, "main_author": author, "dataset_id": None}
+        pick = stable_pick([candidate] + ([current] if current else []), seed=seed)
+        representatives[author] = pick
+
+    # Trim authors according to limits
+    top_authors = sorted(author_counts.items(), key=lambda x: -x[1])[:max_authors]
+
+    picked_entries: List[Dict] = []
+    for author, _ in top_authors:
+        rep = representatives.get(author)
+        if not rep:
+            continue
+        rep["picked_by"] = "scan"
+        rep["bucket_entry_count"] = author_counts[author]
+        picked_entries.append(rep)
+
+    picked_entries = deduplicate_entries(picked_entries)
+
+    code_author_rows = [
+        {"code": code, "main_author": author, "n_entries": cnt, "n_datasets": 0}
+        for author, cnt in top_authors
+    ]
+    code_author_dataset_rows: List[Dict] = []
+    global_author_dataset_rows: List[Dict] = []
+    code_overview_row = {
+        "code": code,
+        "n_entries": total_entries,
+        "n_main_authors": len(author_counts),
+        "n_datasets": 0,
+    }
+
+    return (
+        picked_entries,
+        code_author_rows,
+        code_author_dataset_rows,
+        global_author_dataset_rows,
+        total_entries,
+        code_overview_row,
+    )
+
+
+def collect(args: argparse.Namespace) -> int:
+    outdir = Path(args.outdir)
+    entries_dir = outdir / "entries" / "by_code"
+    data_dir = outdir / "data"
+    entries_dir.mkdir(parents=True, exist_ok=True)
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    include_fields = args.include_fields or [
+        "entry_id",
+        args.author_quantity,
+        schemas.DATASETS_Q,
+    ]
+
+    code_overview_rows: List[Dict] = []
+    code_author_rows: List[Dict] = []
+    code_author_dataset_rows: List[Dict] = []
+    global_author_dataset_rows: List[Dict] = []
+    total_picked = 0
+    codes_processed = 0
+
+    for code in args.codes:
+        logger.info("Processing code %s", code)
+        (
+            picked,
+            ca_rows,
+            cad_rows,
+            global_rows,
+            entries_count,
+            overview_row,
+        ) = collect_code(
+            base_url=args.base_url,
+            code=code,
+            author_quantity=args.author_quantity,
+            seed=args.seed,
+            page_size=args.page_size,
+            include_fields=include_fields,
+            max_authors=args.max_authors_per_code,
+            max_datasets=args.max_datasets_per_author,
+        )
+        codes_processed += 1
+        total_picked += len(picked)
+        code_overview_rows.append(overview_row)
+        code_author_rows.extend(ca_rows)
+        code_author_dataset_rows.extend(cad_rows)
+        global_author_dataset_rows.extend(global_rows)
+
+        if picked:
+            filename = normalize_code_name(code) + ".jsonl"
+            write_jsonl(entries_dir / filename, picked)
+        else:
+            logger.info("No picks for code %s", code)
+
+    write_csv(data_dir / "code_overview.csv", code_overview_rows, ["code", "n_entries", "n_main_authors", "n_datasets"])
+    write_csv(data_dir / "code_author_overview.csv", code_author_rows, ["code", "main_author", "n_entries", "n_datasets"])
+    write_csv(
+        data_dir / "code_author_dataset_overview.csv",
+        code_author_dataset_rows,
+        ["code", "main_author", "dataset_id", "n_entries"],
+    )
+    write_csv(
+        data_dir / "global_author_dataset_overview.csv",
+        global_author_dataset_rows,
+        ["main_author", "dataset_id", "n_entries"],
+    )
+
+    run_metadata = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "base_url": args.base_url,
+        "args": vars(args),
+        "total_codes_processed": codes_processed,
+        "total_picked_entries": total_picked,
+    }
+    with (data_dir / "run_metadata.json").open("w", encoding="utf-8") as handle:
+        json.dump(run_metadata, handle, indent=2, ensure_ascii=True)
+
+    return 0
+
+
+def configure_logging(verbose: bool) -> None:
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+
+def main() -> None:
+    args = parse_args()
+    configure_logging(args.verbose)
+    try:
+        exit_code = collect(args)
+    except Exception as exc:  # pragma: no cover - CLI guard
+        logger.exception("Collection failed: %s", exc)
+        raise SystemExit(1) from exc
+    raise SystemExit(exit_code)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()

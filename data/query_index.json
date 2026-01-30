@@ -98,7 +98,7 @@
       "date": "2025-01-30",
       "total_entries_found": 5,
       "entries_selected": 3,
-      "notes": "Program name spelling is critical: 'Quantum Espresso' works, 'Quantum ESPRESSO' returns 0 results. All entries are tungsten (W) calculations with v5.0.1"
+      "notes": "Program name spelling is critical: 'Quantum Espresso' works, 'Quantum ESPRESSO' returns 0 results. All entries are tungsten (W) calculations with v5.0.1. Similar to legacy parser test case: tests/data/quantumespresso/W_dos/"
     },
     "qe_geometry_opt": {
       "description": "Quantum Espresso entries with geometry optimization workflows, representing multi-element systems",
@@ -115,6 +115,55 @@
       "total_entries_found": 121491,
       "entries_selected": 7,
       "notes": "Diverse intermetallic systems including transition metal compounds. Uses v5.1rc2 with GGA functionals"
+    },
+    "vasp_si_dos_band_legacy": {
+      "description": "VASP Silicon entries with DOS and band structure, similar to legacy parser test case Si_dos_band",
+      "nomad_query_body": {
+        "owner": "visible",
+        "query": {
+          "results.method.simulation.program_name": "VASP",
+          "results.material.elements": ["Si"],
+          "results.properties.available_properties:all": ["dos_electronic", "band_structure_electronic"]
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=VASP&results.material.elements=Si&results.properties.available_properties=dos_electronic&results.properties.available_properties=band_structure_electronic",
+      "used_in": [],
+      "date": "2025-01-30",
+      "total_entries_found": 203,
+      "entries_selected": 0,
+      "notes": "Entries matching characteristics of legacy test: tests/data/vasp/Si_dos_band/. Pure Si systems with 2+ atoms"
+    },
+    "fhiaims_fe_legacy": {
+      "description": "FHI-aims Iron entries, similar to legacy parser test case Fe_scf_spinpol",
+      "nomad_query_body": {
+        "owner": "visible",
+        "query": {
+          "results.method.simulation.program_name": "FHI-aims",
+          "results.material.elements": ["Fe"]
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=FHI-aims&results.material.elements=Fe",
+      "used_in": [],
+      "date": "2025-01-30",
+      "total_entries_found": 3522,
+      "entries_selected": 0,
+      "notes": "Entries matching characteristics of legacy test: tests/data/fhiaims/Fe_scf_spinpol/. Includes spin-polarized calculations"
+    },
+    "exciting_c_legacy": {
+      "description": "exciting Carbon entries, similar to legacy parser test case C_gs",
+      "nomad_query_body": {
+        "owner": "visible",
+        "query": {
+          "results.method.simulation.program_name": "exciting",
+          "results.material.elements": ["C"]
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=exciting&results.material.elements=C",
+      "used_in": [],
+      "date": "2025-01-30",
+      "total_entries_found": 7419,
+      "entries_selected": 0,
+      "notes": "Entries matching characteristics of legacy test: tests/data/exciting/C_gs/. Includes pure carbon and carbon-containing compounds"
     }
   },
   "file_query_map": {

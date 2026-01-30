@@ -1,0 +1,126 @@
+{
+  "version": "1.0",
+  "description": "Index of NOMAD API queries used to collect simulation entries for parser testing",
+  "queries": {
+    "vasp_dos_bandstructure": {
+      "description": "VASP entries with both electronic DOS and band structure data, representing comprehensive electronic structure calculations",
+      "nomad_query_body": {
+        "owner": "visible",
+        "query": {
+          "results.method.simulation.program_name": "VASP",
+          "results.properties.available_properties:all": [
+            "dos_electronic",
+            "band_structure_electronic"
+          ]
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=VASP&results.properties.available_properties=dos_electronic&results.properties.available_properties=band_structure_electronic",
+      "used_in": ["VASP.jsonl"],
+      "date": "2025-01-30",
+      "total_entries_found": 4415529,
+      "entries_selected": 10,
+      "notes": "Selected diverse materials from AFLOW and Alexandria datasets with spin-polarized and non-spin-polarized calculations"
+    },
+    "fhiaims_dos": {
+      "description": "FHI-aims entries with electronic DOS calculations, including various XC functionals (LDA, PBE) and atom-projected DOS",
+      "nomad_query_body": {
+        "owner": "visible",
+        "query": {
+          "results.method.simulation.program_name": "FHI-aims",
+          "results.properties.available_properties": "dos_electronic"
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=FHI-aims&results.properties.available_properties=dos_electronic",
+      "used_in": ["FHI-aims.jsonl"],
+      "date": "2025-01-30",
+      "total_entries_found": 124147,
+      "entries_selected": 9
+    },
+    "fhiaims_gw": {
+      "description": "FHI-aims G0W0 calculation for quasiparticle energy corrections beyond DFT",
+      "nomad_query_body": {
+        "owner": "visible",
+        "query": {
+          "results.method.simulation.program_name": "FHI-aims",
+          "results.method.method_name:any": ["GW", "G0W0"]
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=FHI-aims&results.method.method_name:any=GW,G0W0",
+      "used_in": ["FHI-aims.jsonl"],
+      "date": "2025-01-30",
+      "total_entries_found": 1380160,
+      "entries_selected": 1,
+      "notes": "Entry by Dorothea Golze, organic molecule C43H57 with hybrid PBE+HF functional"
+    },
+    "exciting_bandstructure": {
+      "description": "exciting code entries with electronic band structure calculations",
+      "nomad_query_body": {
+        "owner": "visible",
+        "query": {
+          "results.method.simulation.program_name": "exciting",
+          "results.properties.available_properties": "band_structure_electronic"
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=exciting&results.properties.available_properties=band_structure_electronic",
+      "used_in": ["exciting.jsonl"],
+      "date": "2025-01-30",
+      "total_entries_found": 3375,
+      "entries_selected": 5,
+      "notes": "Materials include perovskites (SrTiO3), semiconductors (Ge-Si-Sn alloys), and halide perovskites (Cs3I7Pb2)"
+    },
+    "exciting_geometry_opt": {
+      "description": "exciting code entries with geometry optimization workflows",
+      "nomad_query_body": {
+        "owner": "visible",
+        "query": {
+          "results.method.simulation.program_name": "exciting",
+          "results.properties.available_properties": "geometry_optimization"
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=exciting&results.properties.available_properties=geometry_optimization",
+      "used_in": ["exciting.jsonl"],
+      "date": "2025-01-30",
+      "total_entries_found": 31918,
+      "entries_selected": 5,
+      "notes": "Includes elastic constants calculations for Ga2O3 polymorphs"
+    },
+    "qe_dos": {
+      "description": "Quantum Espresso entries with electronic DOS calculations (note: program name is 'Quantum Espresso' not 'Quantum ESPRESSO')",
+      "nomad_query_body": {
+        "owner": "visible",
+        "query": {
+          "results.method.simulation.program_name": "Quantum Espresso",
+          "results.properties.available_properties": "dos_electronic"
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=Quantum%20Espresso&results.properties.available_properties=dos_electronic",
+      "used_in": ["QuantumEspresso.jsonl"],
+      "date": "2025-01-30",
+      "total_entries_found": 5,
+      "entries_selected": 3,
+      "notes": "Program name spelling is critical: 'Quantum Espresso' works, 'Quantum ESPRESSO' returns 0 results. All entries are tungsten (W) calculations with v5.0.1"
+    },
+    "qe_geometry_opt": {
+      "description": "Quantum Espresso entries with geometry optimization workflows, representing multi-element systems",
+      "nomad_query_body": {
+        "owner": "visible",
+        "query": {
+          "results.method.simulation.program_name": "Quantum Espresso",
+          "results.properties.available_properties": "geometry_optimization"
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=Quantum%20Espresso&results.properties.available_properties=geometry_optimization",
+      "used_in": ["QuantumEspresso.jsonl"],
+      "date": "2025-01-30",
+      "total_entries_found": 121491,
+      "entries_selected": 7,
+      "notes": "Diverse intermetallic systems including transition metal compounds. Uses v5.1rc2 with GGA functionals"
+    }
+  },
+  "file_query_map": {
+    "VASP.jsonl": ["vasp_dos_bandstructure"],
+    "FHI-aims.jsonl": ["fhiaims_dos", "fhiaims_gw"],
+    "exciting.jsonl": ["exciting_bandstructure", "exciting_geometry_opt"],
+    "QuantumEspresso.jsonl": ["qe_dos", "qe_geometry_opt"]
+  }
+}

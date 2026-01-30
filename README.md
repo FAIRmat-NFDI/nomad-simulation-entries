@@ -22,6 +22,21 @@ Outputs land in `data/` and `entries/by_code/`. Reruns with the same `--seed` ar
 - `data/code_author_dataset_overview.csv`: entry counts per code/author/dataset.
 - `data/global_author_dataset_overview.csv`: entry counts per author/dataset across all codes.
 - `data/run_metadata.json`: timestamp, args, base URL, and call counts.
+- `data/query_index.json`: index of NOMAD API queries with full POST bodies for reproducibility.
+
+## Query Index
+
+Entries selected via `data/query_index.json` include a `query_ids` field linking to specific NOMAD API queries. The query index documents:
+
+- Full NOMAD POST query bodies for reproducibility
+- URL equivalents for browser testing
+- Total entries found and selection criteria
+- Query-specific notes (e.g., program name spelling)
+
+Each entry in JSONL files includes:
+- `query_ids`: List of query IDs (ordered by execution) from `query_index.json`
+- `method_name`: List of methods (e.g., `["DFT"]`, `["GW"]`) ordered by execution
+- `picked_by`: Source of entry selection (`"scan"` for automated, `"data/query_index.json"` for manual curation)
 
 ## Notes
 

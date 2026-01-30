@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-01-30T11:02:35.230869",
+  "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
+  "code": "atomisticparsers:h5md_parser_entry_point",
+  "query_by": "parser_name",
+  "collect_all": true,
+  "seed": 0,
+  "page_size": 200,
+  "total_entries": 233,
+  "picked_entries": 233,
+  "n_main_authors": 1
+}

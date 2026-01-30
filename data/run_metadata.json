@@ -1,12 +1,13 @@
 {
-  "timestamp": "2025-12-15T13:46:29.993551",
+  "timestamp": "2026-01-30T11:02:35.232751",
   "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
   "args": {
     "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
     "outdir": ".",
     "codes": [
-      "GROMACS"
+      "atomisticparsers:h5md_parser_entry_point"
     ],
+    "query_by": "parser_name",
     "author_quantity": "main_author",
     "seed": 0,
     "page_size": 200,
@@ -15,11 +16,11 @@
     "max_datasets_per_author": 10,
     "include_fields": [
       "entry_id",
-      "upload_id",
       "main_author"
     ],
+    "collect_all": true,
     "verbose": true
   },
   "total_codes_processed": 1,
-  "total_picked_entries": 13
+  "total_picked_entries": 233
 }

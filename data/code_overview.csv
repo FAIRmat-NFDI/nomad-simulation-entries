@@ -1,9 +1,4 @@
 code,n_entries,n_main_authors,n_datasets
 GROMACS,16666,13,0
 ORCA,97233,21,0
-h5md,0,0,0
-H5MD,0,0,0
-parsers/h5md,0,0,0
-Espresso++,0,0,0
-ESPResSo++,233,1,0
 atomisticparsers:h5md_parser_entry_point,233,1,0

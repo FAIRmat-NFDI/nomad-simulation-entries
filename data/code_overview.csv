@@ -1,3 +1,4 @@
 code,n_entries,n_main_authors,n_datasets
 GROMACS,16666,13,0
 ORCA,97233,21,0
+atomisticparsers:h5md_parser_entry_point,233,1,0

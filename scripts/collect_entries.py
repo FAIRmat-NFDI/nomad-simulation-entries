@@ -25,7 +25,13 @@ def parse_args() -> argparse.Namespace:
         "--codes",
         nargs="+",
         required=True,
-        help="Simulation codes to process (required).",
+        help="Simulation codes or parser names to process (required).",
+    )
+    parser.add_argument(
+        "--query-by",
+        default="program_name",
+        choices=["program_name", "parser_name"],
+        help="Query by program_name or parser_name (default: program_name).",
     )
     parser.add_argument(
         "--author-quantity",
@@ -47,6 +53,11 @@ def parse_args() -> argparse.Namespace:
         nargs="+",
         default=None,
         help="Fields to request when fetching entries.",
+    )
+    parser.add_argument(
+        "--collect-all",
+        action="store_true",
+        help="Collect all entries instead of one per (code, author) bucket.",
     )
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args()
@@ -100,9 +111,13 @@ def iter_code_entries(
     author_quantity: str,
     page_size: int,
     include_fields: List[str],
+    query_by: str = "program_name",
 ) -> Iterable[Dict]:
     page_after: Optional[str] = None
-    query = {schemas.CODE_Q: code}
+    if query_by == "parser_name":
+        query = {"parser_name": code}
+    else:
+        query = {schemas.CODE_Q: code}
     while True:
         entries, next_val = fetch_entries_page(
             base_url=base_url,
@@ -127,13 +142,16 @@ def collect_code(
     include_fields: List[str],
     max_authors: int,
     max_datasets: int,
-) -> Tuple[List[Dict], List[Dict], List[Dict], List[Dict], int]:
+    query_by: str = "program_name",
+    collect_all: bool = False,
+) -> Tuple[List[Dict], List[Dict], List[Dict], List[Dict], int, Dict]:
     author_counts: Dict[str, int] = {}
     representatives: Dict[str, Dict] = {}
+    all_entries: List[Dict] = []
     total_entries = 0
 
     for entry in iter_code_entries(
-        base_url, code, author_quantity, page_size, include_fields
+        base_url, code, author_quantity, page_size, include_fields, query_by
     ):
         entry_id = entry.get("entry_id")
         if not entry_id:
@@ -149,29 +167,51 @@ def collect_code(
         author_counts[author] = author_counts.get(author, 0) + 1
         total_entries += 1
 
-        current = representatives.get(author)
-        candidate = {
-            "entry_id": entry_id,
-            "code": code,
-            "main_author": author,
-            "dataset_id": None,
-        }
-        pick = stable_pick([candidate] + ([current] if current else []), seed=seed)
-        representatives[author] = pick
+        if collect_all:
+            # Store all entries
+            entry_data = {
+                "entry_id": entry_id,
+                "main_author": author,
+                "dataset_id": None,
+            }
+            if query_by == "parser_name":
+                entry_data["entry_point"] = code
+            else:
+                entry_data["code"] = code
+            all_entries.append(entry_data)
+        else:
+            # Store one representative per author
+            current = representatives.get(author)
+            candidate = {
+                "entry_id": entry_id,
+                "main_author": author,
+                "dataset_id": None,
+            }
+            if query_by == "parser_name":
+                candidate["entry_pointpoint"] = code
+            else:
+                candidate["code"] = code
+            pick = stable_pick([candidate] + ([current] if current else []), seed=seed)
+            representatives[author] = pick
 
     # Trim authors according to limits
     top_authors = sorted(author_counts.items(), key=lambda x: -x[1])[:max_authors]
 
     picked_entries: List[Dict] = []
-    for author, _ in top_authors:
-        rep = representatives.get(author)
-        if not rep:
-            continue
-        rep["picked_by"] = "scan"
-        rep["bucket_entry_count"] = author_counts[author]
-        picked_entries.append(rep)
+    if collect_all:
+        # Return all entries without the picked_by metadata
+        picked_entries = all_entries
+    else:
+        # Return one representative per author
+        for author, _ in top_authors:
+            rep = representatives.get(author)
+            if not rep:
+                continue
+            rep["picked_by"] = "scan"
+            rep["bucket_entry_count"] = author_counts[author]
+            picked_entries.append(rep)
 
-    picked_entries = deduplicate_entries(picked_entries)
+        picked_entries = deduplicate_entries(picked_entries)
 
     code_author_rows = [
         {"code": code, "main_author": author, "n_entries": cnt, "n_datasets": 0}
@@ -266,6 +306,8 @@ def collect(args: argparse.Namespace) -> int:
             include_fields=include_fields,
             max_authors=args.max_authors_per_code,
             max_datasets=args.max_datasets_per_author,
+            query_by=args.query_by,
+            collect_all=args.collect_all,
         )
         codes_processed += 1
         total_picked += len(picked)
@@ -277,6 +319,23 @@ def collect(args: argparse.Namespace) -> int:
         if picked:
             filename = normalize_code_name(code) + ".jsonl"
             write_jsonl(entries_dir / filename, picked)
+            
+            # Save per-code run metadata
+            metadata_filename = normalize_code_name(code) + "_run_metadata.json"
+            code_metadata = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "base_url": args.base_url,
+                "code": code,
+                "query_by": args.query_by,
+                "collect_all": args.collect_all,
+                "seed": args.seed,
+                "page_size": args.page_size,
+                "total_entries": entries_count,
+                "picked_entries": len(picked),
+                "n_main_authors": len(ca_rows),
+            }
+            with (entries_dir / metadata_filename).open("w", encoding="utf-8") as handle:
+                json.dump(code_metadata, handle, indent=2, ensure_ascii=True)
         else:
             logger.info("No picks for code %s", code)
 

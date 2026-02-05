@@ -8,5 +8,8 @@
   "page_size": 200,
   "total_entries": 233,
   "picked_entries": 233,
-  "n_main_authors": 1
+  "n_main_authors": 1,
+  "query_ids": [
+    "h5md_parser_scan"
+  ]
 }

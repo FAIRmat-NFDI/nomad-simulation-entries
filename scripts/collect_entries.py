@@ -149,6 +149,7 @@ def collect_code(
     representatives: Dict[str, Dict] = {}
     all_entries: List[Dict] = []
     total_entries = 0
+    collection_timestamp = datetime.utcnow().isoformat()
 
     for entry in iter_code_entries(
         base_url, code, author_quantity, page_size, include_fields, query_by
@@ -178,6 +179,9 @@ def collect_code(
                 entry_data["entry_point"] = code
             else:
                 entry_data["code"] = code
+            entry_data["picked_by"] = "scan"
+            entry_data["query_ids"] = []
+            entry_data["timestamp"] = collection_timestamp
             all_entries.append(entry_data)
         else:
             # Store one representative per author
@@ -188,7 +192,7 @@ def collect_code(
                 "dataset_id": None,
             }
             if query_by == "parser_name":
-                candidate["entry_pointpoint"] = code
+                candidate["entry_point"] = code
             else:
                 candidate["code"] = code
             pick = stable_pick([candidate] + ([current] if current else []), seed=seed)
@@ -199,7 +203,7 @@ def collect_code(
 
     picked_entries: List[Dict] = []
     if collect_all:
-        # Return all entries without the picked_by metadata
+        # Return all entries (metadata already added above)
         picked_entries = all_entries
     else:
         # Return one representative per author
@@ -208,6 +212,8 @@ def collect_code(
             if not rep:
                 continue
             rep["picked_by"] = "scan"
+            rep["query_ids"] = []
+            rep["timestamp"] = collection_timestamp
             rep["bucket_entry_count"] = author_counts[author]
             picked_entries.append(rep)
 
@@ -333,9 +339,11 @@ def collect(args: argparse.Namespace) -> int:
                 "total_entries": entries_count,
                 "picked_entries": len(picked),
                 "n_main_authors": len(ca_rows),
+                "query_ids": [],  # Empty for now; can be populated manually in query_index.json
             }
             with (entries_dir / metadata_filename).open("w", encoding="utf-8") as handle:
                 json.dump(code_metadata, handle, indent=2, ensure_ascii=True)
+                handle.write("\n")
         else:
             logger.info("No picks for code %s", code)
 

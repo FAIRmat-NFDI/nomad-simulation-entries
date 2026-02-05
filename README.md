@@ -25,19 +25,49 @@ Outputs land in `data/` and `entries/by_code/`. Reruns with the same `--seed` ar
 - `data/run_metadata.json`: Global run metadata (timestamp, args, base URL, and call counts)
 - `data/query_index.json`: Index of NOMAD API queries with full POST bodies for reproducibility
 
-## Query Index
+## Metadata System
 
-Entries selected via `data/query_index.json` include a `query_ids` field linking to specific NOMAD API queries. The query index documents:
+This repository uses a **hybrid metadata approach** combining entry-level, file-level, and query-level metadata:
 
+### Entry-Level Metadata (in JSONL files)
+
+Every entry includes fields documenting its collection:
+
+**Required fields (all entries):**
+- `entry_id`: NOMAD entry identifier
+- `main_author`: Principal author
+- `dataset_id`: Dataset ID or null
+- `picked_by`: `"scan"` (automated) or `"data/query_index.json"` (manual curation)
+- `query_ids`: List of query IDs from `query_index.json` (empty `[]` for legacy scans)
+- `timestamp`: ISO 8601 timestamp when entry was collected
+
+**Conditional fields:**
+- `code`: Simulation program name (for `query_by=program_name`)
+- `entry_point`: Parser entry point (for `query_by=parser_name`)
+- `method_name`: List of methods like `["DFT"]`, `["GW"]` (for simulation codes)
+- `workflow_name`: Workflow name (for simulation codes)
+- `available_properties`: Available properties from NOMAD (for simulation codes)
+- `bucket_entry_count`: Entries in author bucket before selection (for scans without `--collect-all`)
+
+### File-Level Metadata (run_metadata.json)
+
+Each code has a `<CODE>_run_metadata.json` file documenting the collection run:
+- `timestamp`: When the collection was executed
+- `query_by`: `"program_name"` or `"parser_name"`
+- `collect_all`: Whether all entries were collected
+- `query_ids`: Links to `query_index.json` definitions
+- Statistics: `total_entries`, `picked_entries`, `n_main_authors`
+
+### Query-Level Metadata (query_index.json)
+
+Central registry at `data/query_index.json` documenting all NOMAD queries:
 - Full NOMAD POST query bodies for reproducibility
 - URL equivalents for browser testing
 - Total entries found and selection criteria
 - Query-specific notes (e.g., program name spelling)
+- `query_type`: `"manual"` or `"automated_scan"`
 
-Each entry in JSONL files includes:
-- `query_ids`: List of query IDs (ordered by execution) from `query_index.json`
-- `method_name`: List of methods (e.g., `["DFT"]`, `["GW"]`) ordered by execution
-- `picked_by`: Source of entry selection (`"scan"` for automated, `"data/query_index.json"` for manual curation)
+**See [METADATA.md](METADATA.md) for complete schema specification.**
 
 ## Query Options
 
@@ -99,3 +129,15 @@ uv run python -m scripts.collect_entries --codes "atomisticparsers:h5md_parser_e
 - Each code/parser gets its own metadata file saved alongside the entries JSONL
 - Simulation code queries use `results.method.simulation.program_name`
 - Parser queries use `parser_name`
+
+### Metadata Design Rationale
+
+The hybrid metadata approach was designed based on these principles:
+
+1. **NOMAD query as source of truth**: The POST query body is the canonical definition of what was extracted
+2. **Entry-level annotation**: Track collection method per entry (not per file) since files may be extended over time or contain entries from multiple sources
+3. **Hybrid storage**: Both centralized (`query_index.json`) and per-file (`run_metadata.json`) metadata serve different purposes:
+   - `query_index.json`: Query definitions and documentation (what queries exist)
+   - `*_run_metadata.json`: Execution details (when/how queries were run)
+4. **Full reproducibility**: Complete query bodies and timestamps allow verification and re-execution
+5. **Automated documentation**: `collect_entries.py` automatically populates all metadata fields, and automated scan queries can be documented in `query_index.json` alongside manual queries

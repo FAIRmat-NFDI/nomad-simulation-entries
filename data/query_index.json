@@ -164,12 +164,66 @@
       "total_entries_found": 7419,
       "entries_selected": 0,
       "notes": "Entries matching characteristics of legacy test: tests/data/exciting/C_gs/. Includes pure carbon and carbon-containing compounds"
+    },
+    "orca_scan": {
+      "description": "Automated scan of all public ORCA entries, selecting one representative per author",
+      "nomad_query_body": {
+        "owner": "public",
+        "query": {
+          "results.method.simulation.program_name": "ORCA"
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=ORCA",
+      "used_in": ["ORCA.jsonl"],
+      "date": "2025-12-15",
+      "total_entries_found": null,
+      "entries_selected": 21,
+      "notes": "Automated scan by collect_entries.py with deterministic author-based selection (seed=0)",
+      "query_type": "automated_scan",
+      "script_version": "collect_entries.py"
+    },
+    "gromacs_scan": {
+      "description": "Automated scan of all public GROMACS entries, selecting one representative per author",
+      "nomad_query_body": {
+        "owner": "public",
+        "query": {
+          "results.method.simulation.program_name": "GROMACS"
+        }
+      },
+      "url_equivalent": "results.method.simulation.program_name=GROMACS",
+      "used_in": ["GROMACS.jsonl"],
+      "date": "2025-12-15",
+      "total_entries_found": null,
+      "entries_selected": 13,
+      "notes": "Automated scan by collect_entries.py with deterministic author-based selection (seed=0)",
+      "query_type": "automated_scan",
+      "script_version": "collect_entries.py"
+    },
+    "h5md_parser_scan": {
+      "description": "Automated scan of all entries using the h5md parser entry point, collecting all entries (not just representatives)",
+      "nomad_query_body": {
+        "owner": "public",
+        "query": {
+          "parser_name": "atomisticparsers:h5md_parser_entry_point"
+        }
+      },
+      "url_equivalent": "parser_name=atomisticparsers:h5md_parser_entry_point",
+      "used_in": ["atomisticparsers_h5md_parser_entry_point.jsonl"],
+      "date": "2026-01-30",
+      "total_entries_found": 233,
+      "entries_selected": 233,
+      "notes": "Automated scan by collect_entries.py with --collect-all flag (no author bucketing)",
+      "query_type": "automated_scan",
+      "script_version": "collect_entries.py"
     }
   },
   "file_query_map": {
     "VASP.jsonl": ["vasp_dos_bandstructure"],
     "FHI-aims.jsonl": ["fhiaims_dos", "fhiaims_gw"],
     "exciting.jsonl": ["exciting_bandstructure", "exciting_geometry_opt"],
-    "QuantumEspresso.jsonl": ["qe_dos", "qe_geometry_opt"]
+    "QuantumEspresso.jsonl": ["qe_dos", "qe_geometry_opt"],
+    "ORCA.jsonl": ["orca_scan"],
+    "GROMACS.jsonl": ["gromacs_scan"],
+    "atomisticparsers_h5md_parser_entry_point.jsonl": ["h5md_parser_scan"]
   }
 }

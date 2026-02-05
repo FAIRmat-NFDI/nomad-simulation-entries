@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-12-15T16:02:58.000000",
+  "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
+  "code": "GROMACS",
+  "query_by": "program_name",
+  "collect_all": false,
+  "seed": 0,
+  "page_size": 500,
+  "total_entries": null,
+  "picked_entries": 13,
+  "n_main_authors": 13,
+  "query_ids": [
+    "gromacs_scan"
+  ]
+}

@@ -1,0 +1,170 @@
+# Metadata Schema Specification
+
+This document defines the complete metadata schema for the nomad-simulation-entries repository, covering entry-level, file-level, and query-level metadata.
+
+## Overview
+
+The repository uses a hybrid metadata approach:
+- **Entry-level metadata**: Each JSONL entry contains fields documenting how/when it was collected
+- **File-level metadata**: Per-code `*_run_metadata.json` files track execution details
+- **Query-level metadata**: Central `data/query_index.json` documents all NOMAD queries
+
+## Entry-Level Metadata (JSONL Schema)
+
+Each entry in `entries/by_code/*.jsonl` files follows this schema:
+
+### Required Fields (All Entries)
+
+```json
+{
+  "entry_id": "string",           // NOMAD entry ID
+  "main_author": "string",        // Main author from NOMAD metadata
+  "dataset_id": "string|null",    // Dataset ID or null
+  "picked_by": "string",          // Source: "scan" or "data/query_index.json"
+  "query_ids": ["string"],        // List of query IDs from query_index.json (empty [] for scan)
+  "timestamp": "ISO8601"          // When entry was collected (ISO 8601 format)
+}
+```
+
+### Conditional Fields
+
+**For simulation code queries** (`query_by=program_name`):
+```json
+{
+  "code": "string",               // Simulation program name
+  "method_name": ["string"],      // List of method names (e.g., ["DFT"], ["GW"])
+  "workflow_name": "string",      // Workflow name (e.g., "GeometryOptimization")
+  "available_properties": ["string"], // Available properties from NOMAD
+  "bucket_entry_count": number    // Number of entries in this author bucket (scan only)
+}
+```
+
+**For parser queries** (`query_by=parser_name`):
+```json
+{
+  "entry_point": "string"         // Parser entry point (e.g., "atomisticparsers:h5md_parser_entry_point")
+}
+```
+
+### Field Definitions
+
+- **entry_id**: NOMAD entry identifier, unique across the database
+- **main_author**: Principal author, used for bucketing in automated scans
+- **dataset_id**: Associated dataset ID, null if not part of a dataset
+- **picked_by**:
+  - `"scan"`: Entry from automated `collect_entries.py` scan
+  - `"data/query_index.json"`: Manually curated entry with documented query
+- **query_ids**: Ordered list of query IDs from `query_index.json`
+  - Empty `[]` for scan entries
+  - One or more IDs for manually curated entries
+  - Order reflects execution sequence (e.g., first broad query, then filtering)
+- **timestamp**: ISO 8601 timestamp when entry was collected (e.g., `"2026-01-30T11:02:35.230869"`)
+- **method_name**: List of computational methods in execution order
+- **bucket_entry_count**: For scan entries, total entries in the (code, author) bucket before selection
+
+## File-Level Metadata (run_metadata.json)
+
+Each code/parser has a corresponding `entries/by_code/<CODE>_run_metadata.json`:
+
+```json
+{
+  "timestamp": "ISO8601",         // When this collection run executed
+  "base_url": "string",           // NOMAD API base URL
+  "code": "string",               // Code or parser entry point
+  "query_by": "string",           // "program_name" or "parser_name"
+  "collect_all": boolean,         // true: all entries, false: one per author
+  "seed": number,                 // Random seed for deterministic selection
+  "page_size": number,            // API pagination size
+  "total_entries": number,        // Total entries found by query
+  "picked_entries": number,       // Number of entries selected
+  "n_main_authors": number,       // Number of unique authors
+  "query_ids": ["string"]         // List of query IDs from query_index.json
+}
+```
+
+### Field Definitions
+
+- **query_ids**: Links to `query_index.json`
+  - For automated scans: references auto-generated query in query_index.json
+  - For manual curation: references manually documented queries
+  - Empty `[]` for legacy runs before query index
+
+## Query-Level Metadata (query_index.json)
+
+Central registry at `data/query_index.json`:
+
+```json
+{
+  "version": "string",
+  "description": "string",
+  "queries": {
+    "query_id": {
+      "description": "string",
+      "nomad_query_body": object,  // Full NOMAD POST query body
+      "url_equivalent": "string",  // URL query string for browser testing
+      "used_in": ["file.jsonl"],   // Files using this query
+      "date": "YYYY-MM-DD",        // Date query was created/executed
+      "total_entries_found": number, // Total entries matching query
+      "entries_selected": number,  // Number selected for inclusion
+      "notes": "string",           // Additional context
+      "query_type": "string",      // "manual" or "automated_scan"
+      "script_version": "string"   // collect_entries.py version (for automated)
+    }
+  },
+  "file_query_map": {
+    "file.jsonl": ["query_id"]     // Quick lookup: file → query IDs
+  }
+}
+```
+
+### Query Types
+
+- **manual**: Manually curated query documented by humans
+- **automated_scan**: Query auto-generated by `collect_entries.py`
+
+### Design Principles
+
+1. **NOMAD query as source of truth**: The `nomad_query_body` is the canonical definition
+2. **Entry-level annotation**: Track collection method per entry, not per file
+3. **Hybrid metadata**: Both centralized (query_index.json) and per-file (run_metadata.json)
+4. **Backward compatibility**: Fields can be added; old entries remain valid
+5. **Reproducibility**: Full query bodies allow re-execution and verification
+
+## Migration Notes
+
+- Legacy entries without `timestamp`: Use timestamp from corresponding `run_metadata.json`
+- Legacy entries without `picked_by`: Set to `"scan"` for automated collections
+- Legacy entries without `query_ids`: Set to `[]` initially, link to query_index when queries documented
+- Automated scan queries should be auto-added to `query_index.json` with `query_type: "automated_scan"`
+
+## Examples
+
+### Manual Curation Entry (VASP)
+```json
+{
+  "entry_id": "---1eTexcYM7nSCkhBEAGFFqfuZr",
+  "code": "VASP",
+  "main_author": "Not specified",
+  "method_name": ["DFT"],
+  "workflow_name": "GeometryOptimization",
+  "available_properties": ["dos_electronic", "band_structure_electronic"],
+  "dataset_id": null,
+  "picked_by": "data/query_index.json",
+  "query_ids": ["vasp_dos_bandstructure"],
+  "timestamp": "2026-01-30T12:00:00.000000",
+  "bucket_entry_count": 1
+}
+```
+
+### Automated Scan Entry (h5md parser)
+```json
+{
+  "entry_id": "-OH4atQ6efkzuQS2mtsnlb5XFNDn",
+  "main_author": "Abbas Gholami",
+  "dataset_id": null,
+  "entry_point": "atomisticparsers:h5md_parser_entry_point",
+  "picked_by": "scan",
+  "query_ids": ["h5md_parser_scan"],
+  "timestamp": "2026-01-30T11:02:35.230869"
+}
+```

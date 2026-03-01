@@ -8,8 +8,8 @@ Curates a small, representative set of public NOMAD simulation entry IDs for tes
 # ORCA-only scan, minimal fields (one representative per author)
 uv run python -m scripts.collect_entries --outdir . --seed 0 --page-size 200 --codes ORCA --include-fields entry_id main_author --verbose
 
-# h5md parser entries (collect all entries)
-uv run python -m scripts.collect_entries --outdir . --seed 0 --page-size 200 --codes "atomisticparsers:h5md_parser_entry_point" --query-by parser_name --include-fields entry_id main_author --collect-all --verbose
+# h5md parser entries (collect all entries, including upload_id)
+uv run python -m scripts.collect_entries --outdir . --seed 0 --page-size 200 --codes "atomisticparsers:h5md_parser_entry_point" --query-by parser_name --include-fields entry_id main_author --include-upload-id --collect-all --verbose
 ```
 
 Outputs land in `data/` and `entries/by_code/`. Reruns with the same `--seed` are deterministic.
@@ -87,6 +87,7 @@ uv run python -m scripts.collect_entries --codes "atomisticparsers:h5md_parser_e
 - `--page-size`: Entries per API page (default: 500)
 - `--max-authors-per-code`: Maximum authors per code (default: 25)
 - `--include-fields`: Metadata fields to request (default: entry_id, main_author, datasets)
+- `--include-upload-id`: Also fetch/store `upload_id` in JSONL rows
 - `--author-quantity`: NOMAD quantity for author (default: main_author)
 - `--base-url`: NOMAD API base URL (default: https://nomad-lab.eu/prod/v1/api/v1)
 - `--verbose`: Enable debug logging

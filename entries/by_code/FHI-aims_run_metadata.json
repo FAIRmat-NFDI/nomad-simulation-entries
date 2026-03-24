@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-03-24T15:31:07.216589",
+  "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
+  "code": "FHI-aims",
+  "query_by": "program_name",
+  "collect_all": true,
+  "seed": 0,
+  "page_size": 500,
+  "total_entries": 1381034,
+  "picked_entries": 1381034,
+  "n_main_authors": 25
+}

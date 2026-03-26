@@ -55,6 +55,11 @@ def parse_args() -> argparse.Namespace:
         help="Fields to request when fetching entries.",
     )
     parser.add_argument(
+        "--include-upload-id",
+        action="store_true",
+        help="Include upload_id in fetched fields and JSONL output rows.",
+    )
+    parser.add_argument(
         "--collect-all",
         action="store_true",
         help="Collect all entries instead of one per (code, author) bucket.",
@@ -164,6 +169,7 @@ def collect_code(
     collect_all: bool = False,
     max_entries: Optional[int] = None,
     additional_filters: Optional[Dict] = None,
+    include_upload_id: bool = False,
 ) -> Tuple[List[Dict], List[Dict], List[Dict], List[Dict], int, Dict]:
     author_counts: Dict[str, int] = {}
     representatives: Dict[str, Dict] = {}
@@ -197,6 +203,8 @@ def collect_code(
                 "main_author": author or "unknown",
                 "dataset_id": None,
             }
+            if include_upload_id:
+                entry_data["upload_id"] = entry.get("upload_id")
             if query_by == "parser_name":
                 entry_data["entry_point"] = code
             else:
@@ -217,8 +225,10 @@ def collect_code(
                 "main_author": author,
                 "dataset_id": None,
             }
+            if include_upload_id:
+                candidate["upload_id"] = entry.get("upload_id")
             if query_by == "parser_name":
-                candidate["entry_pointpoint"] = code
+                candidate["entry_point"] = code
             else:
                 candidate["code"] = code
             pick = stable_pick([candidate] + ([current] if current else []), seed=seed)
@@ -278,6 +288,8 @@ def collect(args: argparse.Namespace) -> int:
         args.author_quantity,
         schemas.DATASETS_Q,
     ]
+    if args.include_upload_id and "upload_id" not in include_fields:
+        include_fields.append("upload_id")
 
     # Read existing CSV data to merge with new results
     existing_code_overview = {
@@ -354,6 +366,7 @@ def collect(args: argparse.Namespace) -> int:
             collect_all=args.collect_all,
             max_entries=args.max_entries,
             additional_filters=additional_filters,
+            include_upload_id=args.include_upload_id,
         )
         codes_processed += 1
         total_picked += len(picked)

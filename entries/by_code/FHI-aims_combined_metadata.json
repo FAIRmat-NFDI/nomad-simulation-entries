@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-25T21:12:48Z",
+  "timestamp": "2026-03-26T15:25:06Z",
   "description": "FHI-aims entries from 5 most populous versions in NOMAD",
   "versions": [
     {"version": "071914", "date": "2014-07-19", "entries": 20000, "available_in_nomad": 444455},
@@ -11,7 +11,8 @@
   "total_entries": 100000,
   "seed": 0,
   "query_method": "version-specific with max_entries limit",
-  "collection_date": "2026-03-25",
+  "collection_date": "2026-03-26",
   "nomad_api_base_url": "https://nomad-lab.eu/prod/v1/api/v1",
-  "note_on_authors": "Author metadata was not retrieved from NOMAD during this collection run. All entries show 'main_author: unknown' even though author data exists in NOMAD for these entries. This was due to include_fields not being explicitly specified during collection."
+  "fields_included": ["entry_id", "main_author", "dataset_id", "upload_id", "code", "program_version"],
+  "note": "Recollected with upload_id and author metadata after fixing NOMAD API bug (requesting 'datasets' field caused empty dicts)."
 }

@@ -64,6 +64,18 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Collect all entries instead of one per (code, author) bucket.",
     )
+    parser.add_argument(
+        "--max-entries",
+        type=int,
+        default=None,
+        help="Maximum number of entries to collect per code (default: no limit).",
+    )
+    parser.add_argument(
+        "--additional-filters",
+        type=str,
+        default=None,
+        help="Additional query filters as JSON string (e.g., '{\"results.method.simulation.program_version\": \"210716_2\"}')",
+    )
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args()
 
@@ -117,12 +129,18 @@ def iter_code_entries(
     page_size: int,
     include_fields: List[str],
     query_by: str = "program_name",
+    additional_filters: Optional[Dict] = None,
 ) -> Iterable[Dict]:
     page_after: Optional[str] = None
     if query_by == "parser_name":
         query = {"parser_name": code}
     else:
         query = {schemas.CODE_Q: code}
+
+    # Merge additional filters into the query
+    if additional_filters:
+        query.update(additional_filters)
+
     while True:
         entries, next_val = fetch_entries_page(
             base_url=base_url,
@@ -149,6 +167,8 @@ def collect_code(
     max_datasets: int,
     query_by: str = "program_name",
     collect_all: bool = False,
+    max_entries: Optional[int] = None,
+    additional_filters: Optional[Dict] = None,
     include_upload_id: bool = False,
 ) -> Tuple[List[Dict], List[Dict], List[Dict], List[Dict], int, Dict]:
     author_counts: Dict[str, int] = {}
@@ -157,7 +177,7 @@ def collect_code(
     total_entries = 0
 
     for entry in iter_code_entries(
-        base_url, code, author_quantity, page_size, include_fields, query_by
+        base_url, code, author_quantity, page_size, include_fields, query_by, additional_filters
     ):
         entry_id = entry.get("entry_id")
         if not entry_id:
@@ -167,17 +187,20 @@ def collect_code(
             "main_author"
         )
         author = normalize_author(raw_author)
-        if not author:
+
+        # In collect_all mode, author is optional; otherwise it's required
+        if not collect_all and not author:
             continue
 
-        author_counts[author] = author_counts.get(author, 0) + 1
+        if author:
+            author_counts[author] = author_counts.get(author, 0) + 1
         total_entries += 1
 
         if collect_all:
             # Store all entries
             entry_data = {
                 "entry_id": entry_id,
-                "main_author": author,
+                "main_author": author or "unknown",
                 "dataset_id": None,
             }
             if include_upload_id:
@@ -187,6 +210,13 @@ def collect_code(
             else:
                 entry_data["code"] = code
             all_entries.append(entry_data)
+
+            # Check if we've reached the max_entries limit
+            if max_entries is not None and len(all_entries) >= max_entries:
+                logger.info(
+                    "Reached max_entries limit of %d for code %s", max_entries, code
+                )
+                break
         else:
             # Store one representative per author
             current = representatives.get(author)
@@ -253,13 +283,20 @@ def collect(args: argparse.Namespace) -> int:
     entries_dir.mkdir(parents=True, exist_ok=True)
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    include_fields = args.include_fields or [
-        "entry_id",
-        args.author_quantity,
-        schemas.DATASETS_Q,
-    ]
+    # Ensure we always have include_fields set with at least entry_id and author
+    # NOTE: Do NOT request "datasets" - it causes NOMAD to return empty dicts for other fields
+    if args.include_fields:
+        include_fields = args.include_fields.copy()
+    else:
+        include_fields = [
+            "entry_id",
+            args.author_quantity,
+        ]
+
     if args.include_upload_id and "upload_id" not in include_fields:
         include_fields.append("upload_id")
+
+    logger.info("Fields to request from NOMAD: %s", include_fields)
 
     # Read existing CSV data to merge with new results
     existing_code_overview = {
@@ -300,8 +337,22 @@ def collect(args: argparse.Namespace) -> int:
     total_picked = 0
     codes_processed = 0
 
+    # Parse additional filters if provided
+    additional_filters = None
+    if args.additional_filters:
+        try:
+            additional_filters = json.loads(args.additional_filters)
+        except json.JSONDecodeError as exc:
+            logger.error("Failed to parse additional_filters JSON: %s", exc)
+            raise SystemExit(1) from exc
+
     for code in args.codes:
         logger.info("Processing code %s", code)
+        if additional_filters:
+            logger.info("Using additional filters: %s", additional_filters)
+        if args.max_entries:
+            logger.info("Max entries limit: %d", args.max_entries)
+
         (
             picked,
             ca_rows,
@@ -320,6 +371,8 @@ def collect(args: argparse.Namespace) -> int:
             max_datasets=args.max_datasets_per_author,
             query_by=args.query_by,
             collect_all=args.collect_all,
+            max_entries=args.max_entries,
+            additional_filters=additional_filters,
             include_upload_id=args.include_upload_id,
         )
         codes_processed += 1
@@ -343,6 +396,8 @@ def collect(args: argparse.Namespace) -> int:
                 "collect_all": args.collect_all,
                 "seed": args.seed,
                 "page_size": args.page_size,
+                "max_entries": args.max_entries,
+                "additional_filters": additional_filters,
                 "total_entries": entries_count,
                 "picked_entries": len(picked),
                 "n_main_authors": len(ca_rows),

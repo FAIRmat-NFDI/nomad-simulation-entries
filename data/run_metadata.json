@@ -1,28 +1,25 @@
 {
-  "timestamp": "2026-02-27T11:26:23.942986",
+  "timestamp": "2026-03-25T21:12:48.233991",
   "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
   "args": {
     "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
     "outdir": ".",
     "codes": [
-      "atomisticparsers:h5md_parser_entry_point"
+      "FHI-aims"
     ],
-    "query_by": "parser_name",
+    "query_by": "program_name",
     "author_quantity": "main_author",
     "seed": 0,
-    "page_size": 200,
+    "page_size": 500,
     "polite_sleep": 0.0,
     "max_authors_per_code": 25,
     "max_datasets_per_author": 10,
-    "include_fields": [
-      "entry_id",
-      "main_author",
-      "upload_id"
-    ],
-    "include_upload_id": true,
+    "include_fields": null,
     "collect_all": true,
+    "max_entries": 20000,
+    "additional_filters": "{\"results.method.simulation.program_version\": \"201103\"}",
     "verbose": true
   },
   "total_codes_processed": 1,
-  "total_picked_entries": 233
+  "total_picked_entries": 20000
 }

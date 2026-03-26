@@ -283,13 +283,20 @@ def collect(args: argparse.Namespace) -> int:
     entries_dir.mkdir(parents=True, exist_ok=True)
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    include_fields = args.include_fields or [
-        "entry_id",
-        args.author_quantity,
-        schemas.DATASETS_Q,
-    ]
+    # Ensure we always have include_fields set with at least entry_id and author
+    # NOTE: Do NOT request "datasets" - it causes NOMAD to return empty dicts for other fields
+    if args.include_fields:
+        include_fields = args.include_fields.copy()
+    else:
+        include_fields = [
+            "entry_id",
+            args.author_quantity,
+        ]
+
     if args.include_upload_id and "upload_id" not in include_fields:
         include_fields.append("upload_id")
+
+    logger.info("Fields to request from NOMAD: %s", include_fields)
 
     # Read existing CSV data to merge with new results
     existing_code_overview = {

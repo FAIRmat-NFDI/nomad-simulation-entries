@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-03-25T21:12:48Z",
+  "description": "FHI-aims entries from 5 most populous versions in NOMAD",
+  "versions": [
+    {"version": "071914", "date": "2014-07-19", "entries": 20000, "available_in_nomad": 444455},
+    {"version": "180501", "date": "2018-05-01", "entries": 20000, "available_in_nomad": 92285},
+    {"version": "031011", "date": "2003-10-11", "entries": 20000, "available_in_nomad": 88008},
+    {"version": "171010", "date": "2017-10-10", "entries": 20000, "available_in_nomad": 77791},
+    {"version": "201103", "date": "2020-11-03", "entries": 20000, "available_in_nomad": 53133}
+  ],
+  "total_entries": 100000,
+  "seed": 0,
+  "query_method": "version-specific with max_entries limit",
+  "collection_date": "2026-03-25",
+  "nomad_api_base_url": "https://nomad-lab.eu/prod/v1/api/v1"
+}

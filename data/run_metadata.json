@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-24T15:31:07.217344",
+  "timestamp": "2026-03-25T21:12:48.233991",
   "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
   "args": {
     "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
@@ -14,13 +14,12 @@
     "polite_sleep": 0.0,
     "max_authors_per_code": 25,
     "max_datasets_per_author": 10,
-    "include_fields": [
-      "entry_id",
-      "main_author"
-    ],
+    "include_fields": null,
     "collect_all": true,
+    "max_entries": 20000,
+    "additional_filters": "{\"results.method.simulation.program_version\": \"201103\"}",
     "verbose": true
   },
   "total_codes_processed": 1,
-  "total_picked_entries": 1381034
+  "total_picked_entries": 20000
 }

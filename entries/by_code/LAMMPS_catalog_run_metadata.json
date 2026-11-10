@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-11-07T21:01:46.450662+00:00",
+  "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
+  "owner": "public",
+  "query": {
+    "parser_name:any": [
+      "parsers/lammps",
+      "atomisticparsers:lammps_parser_entry_point"
+    ]
+  },
+  "required_include": [
+    "entry_id",
+    "upload_id",
+    "main_author",
+    "parser_name",
+    "mainfile",
+    "processed",
+    "processing_errors",
+    "entry_create_time",
+    "upload_create_time",
+    "results.method.simulation.program_name",
+    "results.method.simulation.program_version",
+    "results.method.workflow_name",
+    "results.method.method_name",
+    "results.properties.available_properties",
+    "results.material.structural_type",
+    "results.material.chemical_formula_reduced",
+    "results.material.elements"
+  ],
+  "total_entries": 3504,
+  "status_counts": {
+    "unprocessed": 1883,
+    "processed": 1621
+  },
+  "parser_counts": {
+    "parsers/lammps": 3475,
+    "atomisticparsers:lammps_parser_entry_point": 29
+  },
+  "n_main_authors": 10
+}

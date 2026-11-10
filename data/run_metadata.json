@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-03-25T21:12:48.233991",
+  "timestamp": "2026-11-07T20:20:29.430719",
   "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
   "args": {
     "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
     "outdir": ".",
     "codes": [
-      "FHI-aims"
+      "LAMMPS"
     ],
     "query_by": "program_name",
     "author_quantity": "main_author",
@@ -15,11 +15,12 @@
     "max_authors_per_code": 25,
     "max_datasets_per_author": 10,
     "include_fields": null,
-    "collect_all": true,
-    "max_entries": 20000,
-    "additional_filters": "{\"results.method.simulation.program_version\": \"201103\"}",
+    "include_upload_id": true,
+    "collect_all": false,
+    "max_entries": null,
+    "additional_filters": null,
     "verbose": true
   },
   "total_codes_processed": 1,
-  "total_picked_entries": 20000
+  "total_picked_entries": 6
 }

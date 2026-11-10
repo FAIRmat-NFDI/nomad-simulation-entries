@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-11-07T20:20:29.429092",
+  "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
+  "code": "LAMMPS",
+  "query_by": "program_name",
+  "collect_all": false,
+  "seed": 0,
+  "page_size": 500,
+  "max_entries": null,
+  "additional_filters": null,
+  "total_entries": 1621,
+  "picked_entries": 6,
+  "n_main_authors": 6
+}

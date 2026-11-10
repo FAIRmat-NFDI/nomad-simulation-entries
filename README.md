@@ -17,6 +17,7 @@ Outputs land in `data/` and `entries/by_code/`. Reruns with the same `--seed` ar
 ## What gets produced
 
 - `entries/by_code/<CODE>.jsonl`: Entry IDs with metadata (one per author by default, or all entries with `--collect-all`)
+- `entries/by_code/LAMMPS_README.md`: Guide to the LAMMPS catalog, query scopes, and representative lists
 - `entries/by_code/<CODE>_run_metadata.json`: Per-code collection metadata (timestamp, query parameters, statistics)
 - `data/code_overview.csv`: Total entries, authors, and datasets per simulation code
 - `data/code_author_overview.csv`: Entry counts per code/author
@@ -27,19 +28,25 @@ Outputs land in `data/` and `entries/by_code/`. Reruns with the same `--seed` ar
 
 ## Query Index
 
-Entries selected via `data/query_index.json` include a `query_ids` field linking to specific NOMAD API queries. The query index documents:
+`data/query_index.json` maps reference files to the NOMAD API queries that produced them. It documents:
 
 - Full NOMAD POST query bodies for reproducibility
-- URL equivalents for browser testing
+- URL equivalents for browser testing, where available
 - Total entries found and selection criteria
 - Query-specific notes (e.g., program name spelling)
 
-Each entry in JSONL files includes:
-- `query_ids`: List of query IDs (ordered by execution) from `query_index.json`
-- `method_name`: List of methods (e.g., `["DFT"]`, `["GW"]`) ordered by execution
-- `picked_by`: Source of entry selection (`"scan"` for automated, `"data/query_index.json"` for manual curation)
+Some manually curated JSONL rows also carry `query_ids` and `method_name` fields. Catalog
+selection rows instead record `picked_by`, `selection_group`, and `bucket_entry_count`;
+their sidecar metadata files record the seed and selection settings.
 
 ## Query Options
+
+### Parser catalog and representative selection
+
+The parser-based catalog includes entries without normalized results, including processing
+failures. The selector can pick one deterministic representative per metadata group. See
+[the LAMMPS guide](entries/by_code/LAMMPS_README.md) for the current catalog, query scopes,
+sample lists, limitations, and commands.
 
 ### Query by simulation code (default)
 

@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-11-07T21:05:24.322652+00:00",
+  "catalog": "entries/by_code/LAMMPS_catalog.jsonl",
+  "total_catalog_entries": 3504,
+  "status": "unprocessed",
+  "group_by": [
+    "main_author"
+  ],
+  "where": {},
+  "seed": 0,
+  "matched_entries": 1883,
+  "picked_entries": 7
+}

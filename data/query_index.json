@@ -164,12 +164,81 @@
       "total_entries_found": 7419,
       "entries_selected": 0,
       "notes": "Entries matching characteristics of legacy test: tests/data/exciting/C_gs/. Includes pure carbon and carbon-containing compounds"
+    },
+    "lammps_molecular_dynamics": {
+      "description": "All public LAMMPS entries indexed with the exact MolecularDynamics workflow name",
+      "nomad_query_body": {
+        "owner": "public",
+        "query": {
+          "and": [
+            {
+              "results.method.simulation.program_name:any": [
+                "LAMMPS"
+              ],
+              "results.method.workflow_name:any": [
+                "MolecularDynamics"
+              ]
+            },
+            {
+              "quantities:any": [
+                "results.method.simulation.program_name"
+              ]
+            }
+          ]
+        }
+      },
+      "used_in": [
+        "LAMMPS_molecular_dynamics.jsonl"
+      ],
+      "date": "2026-11-07",
+      "total_entries_found": 22,
+      "entries_selected": 22,
+      "notes": "owner=visible gave the same 22 IDs. This is a subset of the 1621 public entries with program_name=LAMMPS. The exact workflow-name spelling excludes 14 older entries indexed as molecular_dynamics."
+    },
+    "lammps_parser_catalog": {
+      "description": "All public entries assigned to the legacy or current LAMMPS parser, including unprocessed entries",
+      "nomad_query_body": {
+        "owner": "public",
+        "query": {
+          "parser_name:any": ["parsers/lammps", "atomisticparsers:lammps_parser_entry_point"]
+        }
+      },
+      "used_in": ["LAMMPS_catalog.jsonl"],
+      "date": "2026-11-07",
+      "total_entries_found": 3504,
+      "entries_selected": 3504,
+      "notes": "1621 processed entries have normalized program_name=LAMMPS; 1883 are unprocessed and lack that normalized name."
+    },
+    "lammps_unprocessed": {
+      "description": "Public LAMMPS parser entries whose processing did not complete",
+      "nomad_query_body": {
+        "owner": "public",
+        "query": {
+          "parser_name:any": ["parsers/lammps", "atomisticparsers:lammps_parser_entry_point"],
+          "processed": false
+        }
+      },
+      "used_in": ["LAMMPS_unprocessed_by_author.jsonl", "LAMMPS_unprocessed_by_author_file_kind.jsonl", "LAMMPS_unprocessed_by_author_file_pattern.jsonl"],
+      "date": "2026-11-07",
+      "total_entries_found": 1883,
+      "entries_selected": 26,
+      "selection_counts": {
+        "LAMMPS_unprocessed_by_author.jsonl": 7,
+        "LAMMPS_unprocessed_by_author_file_kind.jsonl": 13,
+        "LAMMPS_unprocessed_by_author_file_pattern.jsonl": 26
+      },
+      "notes": "The representative lists are selected locally from LAMMPS_catalog.jsonl with seed 0, grouped by author, author/parser/mainfile kind, or author/parser/mainfile pattern/processing error."
     }
   },
   "file_query_map": {
     "VASP.jsonl": ["vasp_dos_bandstructure"],
     "FHI-aims.jsonl": ["fhiaims_dos", "fhiaims_gw"],
     "exciting.jsonl": ["exciting_bandstructure", "exciting_geometry_opt"],
-    "QuantumEspresso.jsonl": ["qe_dos", "qe_geometry_opt"]
+    "QuantumEspresso.jsonl": ["qe_dos", "qe_geometry_opt"],
+    "LAMMPS_molecular_dynamics.jsonl": ["lammps_molecular_dynamics"],
+    "LAMMPS_catalog.jsonl": ["lammps_parser_catalog"],
+    "LAMMPS_unprocessed_by_author.jsonl": ["lammps_unprocessed"],
+    "LAMMPS_unprocessed_by_author_file_kind.jsonl": ["lammps_unprocessed"],
+    "LAMMPS_unprocessed_by_author_file_pattern.jsonl": ["lammps_unprocessed"]
   }
 }

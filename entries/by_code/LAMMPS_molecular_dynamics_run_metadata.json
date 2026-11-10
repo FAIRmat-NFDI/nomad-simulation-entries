@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-11-07T20:45:16.731410+00:00",
+  "base_url": "https://nomad-lab.eu/prod/v1/api/v1",
+  "owner": "public",
+  "query": {
+    "and": [
+      {
+        "results.method.simulation.program_name:any": [
+          "LAMMPS"
+        ],
+        "results.method.workflow_name:any": [
+          "MolecularDynamics"
+        ]
+      },
+      {
+        "quantities:any": [
+          "results.method.simulation.program_name"
+        ]
+      }
+    ]
+  },
+  "code": "LAMMPS",
+  "query_by": "program_name and workflow_name",
+  "collect_all": true,
+  "total_entries": 22,
+  "picked_entries": 22,
+  "n_main_authors": 3,
+  "n_uploads": 3,
+  "parser_counts": {
+    "atomisticparsers:lammps_parser_entry_point": 20,
+    "parsers/lammps": 2
+  },
+  "version_counts": {
+    "29 Oct 2020": 15,
+    "21 Nov 2023": 2,
+    "<missing>": 3,
+    "7 Aug 2019": 2
+  },
+  "raw_log_class_counts": {
+    "startup_only": 20,
+    "thermo_output": 2
+  },
+  "broader_program_name_query": {
+    "total_entries": 1621,
+    "workflow_name_counts": {
+      "missing": 1583,
+      "MolecularDynamics": 22,
+      "molecular_dynamics": 14,
+      "GeometryOptimization": 2
+    }
+  },
+  "parser_name_query": {
+    "parsers/lammps": 3475,
+    "atomisticparsers:lammps_parser_entry_point": 29,
+    "without_normalized_LAMMPS_program_name": 1883,
+    "without_normalized_program_name_processed_false": 1883,
+    "without_normalized_program_name_process_failed": 1882
+  },
+  "notes": "The same query with owner=visible returned the same 22 public entry IDs. Raw-log sizes were checked via public raw-file URLs."
+}
